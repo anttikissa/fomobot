@@ -1,0 +1,101 @@
+#!/usr/bin/env node
+
+const config = require('./config');
+const crypto = require('crypto');
+const request = require('request');
+const { log } = console;
+
+const BASE_URL = 'https://bittrex.com/api/v1.1';
+
+function sha512(secret, text) {
+	const hash = crypto.createHmac('sha512', secret);
+	hash.update(text);
+	return hash.digest('hex');
+}
+
+async function api(path, params) {
+	if (path[0] !== '/') {
+		throw new Error('Must begin with /');
+	}
+
+	if (params) {
+		log('API call', path, params);
+	} else {
+		log('API call', path);
+	}
+
+	const result = await new Promise((resolve, reject) => {
+		const allParams = Object.assign({}, params, {
+			apikey: config.bittrex.API_KEY,
+			nonce: Date.now()
+		});
+
+		const paramString = '?' + Object.keys(allParams).map(key => {
+			return key + '=' + allParams[key];
+		}).join('&');
+
+		const uri = BASE_URL + path + paramString;
+		const sign = sha512(config.bittrex.API_SECRET, uri);
+
+		request({
+			url: uri,
+			headers: {
+				apisign: sign
+			}
+		}, (err, resp, body) => {
+			// verbose debug
+			//log('body', body);
+			if (err) {
+				return reject(err);
+			}
+			try {
+				const parsed = JSON.parse(body);
+				if (parsed.success === false) {
+					return reject(parsed.message);
+				} else {
+					return resolve(parsed.result);
+				}
+			} catch (e) {
+				return reject('Cannot parse ' + body);
+			}
+
+			reject('never come here');
+		});
+	});
+
+	return result;
+}
+
+async function main() {
+	log('balances', await api('/account/getbalances'))
+
+	const markets = (await api('/public/getmarkets')).map(market => {
+		return `${market.MarketName}, min trade ${market.MinTradeSize}`;
+	});
+
+	log('markets', markets.filter(market => market.includes('ETH')));
+
+	let ticker = await api('/public/getticker', { market: 'BTC-ETH' } );
+	log('ticker', ticker);
+
+	let price = ticker.Ask;
+
+	let balances = await api('/account/getbalances');
+
+	log('balances', balances);
+
+	if (false) {
+		let buyResult = await api('/market/buylimit', {
+			market: 'BTC-ETH',
+			quantity: '0.05',
+			rate: price
+		});
+
+		log('buy result', buyResult);
+	}
+}
+
+main().catch(err => {
+	log('Error', err);
+});
+
