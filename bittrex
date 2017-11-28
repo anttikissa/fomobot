@@ -13,15 +13,19 @@ function sha512(secret, text) {
 	return hash.digest('hex');
 }
 
+const DEBUG = false;
+
 async function api(path, params) {
 	if (path[0] !== '/') {
 		throw new Error('Must begin with /');
 	}
 
-	if (params) {
-		log('API call', path, params);
-	} else {
-		log('API call', path);
+	if (DEBUG) {
+		if (params) {
+			log('API call', path, params);
+		} else {
+			log('API call', path);
+		}
 	}
 
 	const result = await new Promise((resolve, reject) => {
@@ -66,23 +70,48 @@ async function api(path, params) {
 	return result;
 }
 
+let balances = null;
+let markets = null;
+
+let ticker = null;
+
+async function getBalances() {
+	balances = await api('/account/getbalances');
+	log(`Received ${balances.length} balances.`);
+}
+
+async function getMarkets() {
+	markets = await api('/public/getmarkets');
+	log(`Received ${markets.length} markets`);
+	// log(markets);
+}
+
+function spread(ticker) {
+	let diff = ticker.Ask - ticker.Bid;
+
+	let relative = (diff / ticker.Bid * 100).toFixed(2) + ' %';
+
+	return `${diff.toFixed(8)} (${relative})`;
+}
+
+async function getTicker() {
+	if (!currentMarket) {
+		throw new Error('No current market');
+	}
+
+	ticker = await api('/public/getticker', { market: currentMarket.MarketName } );
+	log(`Last: ${ticker.Last}, Bid: ${ticker.Bid}, Ask: ${ticker.Ask}, Spread: ${spread(ticker)}`);
+	updatePrompt();
+}
+
 async function main() {
-	log('balances', await api('/account/getbalances'))
+	await Promise.all([
+		getBalances(),
+		getMarkets()
+	]);
 
-	const markets = (await api('/public/getmarkets')).map(market => {
-		return `${market.MarketName}, min trade ${market.MinTradeSize}`;
-	});
 
-	log('markets', markets.filter(market => market.includes('ETH')));
-
-	let ticker = await api('/public/getticker', { market: 'BTC-ETH' } );
-	log('ticker', ticker);
-
-	let price = ticker.Ask;
-
-	let balances = await api('/account/getbalances');
-
-	log('balances', balances);
+	// let price = ticker.Ask;
 
 	if (false) {
 		let buyResult = await api('/market/buylimit', {
@@ -99,3 +128,73 @@ main().catch(err => {
 	log('Error', err);
 });
 
+// REPL
+const repl = require('repl');
+
+let currentMarket = null;
+let currentCurrency = null;
+let currentMinTradeSize = null;
+
+function updatePrompt() {
+	if (!currentMarket) {
+		return replInstance.setPrompt('no market> ');
+	}
+
+	if (ticker) {
+		tickerString = ticker.Last;
+		replInstance.setPrompt(`${currentMarket.MarketName} ${tickerString}> `);
+	} else {
+		replInstance.setPrompt(`${currentMarket.MarketName}> `);
+	}
+
+}
+
+async function myEval(cmd, context, filename, callback) {
+	if (!markets) {
+		return callback(null, 'No markets. Try again in a second');
+	}
+
+	cmd = cmd.trim();
+
+	if (!cmd) {
+		return callback(null, 'Please specify a market.');
+	}
+
+	let wantedMarket = 'BTC-' + cmd.toUpperCase();
+
+	let maybeMarket = markets.find(market => {
+		if (market.MarketName === wantedMarket) {
+			return true;
+		}
+	});
+
+	if (maybeMarket) {
+		let market = maybeMarket;
+		// log('Found market', market);
+		updatePrompt();
+
+		currentMarket = market;
+		currentCurrency = market.MarketCurrency;
+		currentMinTradeSize = market.MinTradeSize;
+		log(`Market ${currentMarket.MarketName} (${currentMarket.MarketCurrencyLong}), min trade ${currentMinTradeSize} ${currentCurrency}`);
+		await getTicker();
+	} else {
+		callback(null, `Market not found: ${wantedMarket}`);
+	}
+
+	callback(null, cmd);
+}
+
+function myWriter(stuff) {
+	if (stuff === undefined) {
+		return 'Hmm?';
+	}
+
+	return stuff;
+}
+
+let replInstance = repl.start({ prompt: '> ', eval: myEval, writer: myWriter });
+
+process.on('unhandledRejection', what => {
+	log('Unhandled', what);
+});
