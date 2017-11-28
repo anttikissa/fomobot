@@ -1,6 +1,23 @@
 #!/usr/bin/env node
 
-var readline = require('./node/readline');
+const readline = require('./node/readline');
+const util = require('util');
+
+const log = (...args) => {
+	const stringify = (s) => {
+		if (typeof s === 'string') {
+			return s;
+		} else {
+			return util.inspect(s);
+		}
+	};
+
+	if (rl) {
+		rl.log(args.map(stringify).join(' '));
+	} else {
+		console.log(...args);
+	}
+};
 
 let rl;
 
@@ -12,7 +29,9 @@ function prompt() {
 
 	rl.question('> ', response => {
 		rl.close();
-		console.log('response:', response);
+		rl = null;
+		log('response:', response);
+		// log('test', 123, new Date(), { x: 123, y: [1 , 2, 'x'] });
 		prompt();
 	});
 }
@@ -20,5 +39,5 @@ function prompt() {
 prompt();
 
 setInterval(() => {
-	console.log('test');
+	log('test', 123, new Date(), { x: 123, y: [1 , 2, 'x'] });
 }, 800);
