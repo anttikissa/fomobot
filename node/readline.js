@@ -292,6 +292,12 @@ Interface.prototype._writeToOutput = function _writeToOutput(stringToWrite) {
   }
 };
 
+Interface.prototype.log = function(str) {
+    this._clearLine();
+    this.output.write(str + '\n');
+    this._refreshLine();
+};
+
 Interface.prototype._addHistory = function() {
   if (this.line.length === 0) return '';
 
@@ -318,6 +324,15 @@ Interface.prototype._addHistory = function() {
   return this.history[0];
 };
 
+Interface.prototype._clearLine = function () {
+  if (this._closed) return;
+
+  // Cursor to left edge.
+  this.output.write('\x1b[0G');
+
+  // Erase to right.
+  this.output.write('\x1b[0K');
+}
 
 Interface.prototype._refreshLine = function() {
   // line length
