@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+
+var readline = require('./node/readline');
+
+let rl;
+
+function prompt() {
+	rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdin
+	});
+
+	rl.question('> ', response => {
+		rl.close();
+		console.log('response:', response);
+		prompt();
+	});
+}
+
+prompt();
+
+setInterval(() => {
+	console.log('test');
+}, 800);
