@@ -182,6 +182,25 @@ async function myEval(cmd, context, filename, callback) {
 		callback(null, `Market not found: ${wantedMarket}`);
 	}
 
+	if (cmd === 'buy') {
+		let quantity = 5211.047420531527;
+
+		log('BUY', {
+			market: currentMarket.MarketName,
+			quantity: quantity.toFixed(2),
+			rate: ticker.Ask * 0.995
+		});
+
+		let buyResult = await api('/market/buylimit', {
+			market: currentMarket.MarketName,
+			quantity: quantity.toFixed(2),
+			rate: ticker.Ask * 0.995
+		});
+
+		log('buy result', buyResult);
+
+	}
+
 	callback(null, cmd);
 }
 
