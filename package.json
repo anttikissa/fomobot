@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "chokidar": "^1.7.0",
+    "mysql": "^2.15.0",
     "request": "^2.83.0"
   }
 }

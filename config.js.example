@@ -2,5 +2,11 @@ module.exports = {
 	bittrex: {
 		API_KEY: 'xxx',
 		API_SECRET: 'xxx'
+	},
+
+	db: {
+		host: 'localhost'
+		user: 'fomobot',
+		password: 'fomobot'
 	}
 };

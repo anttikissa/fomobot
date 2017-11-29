@@ -30,6 +30,8 @@ prompt.setPrompt = function(prefix) {
 // Ask a question. If question is not specified, use prompt.prompt.
 prompt.ask = async function ask(question) {
 	const result = await new Promise(resolve => {
+		// log('opening rl');
+
 		this.rl = readline.createInterface({
 			input: process.stdin,
 			output: process.stdin
@@ -37,7 +39,7 @@ prompt.ask = async function ask(question) {
 
 		this.rl.on('close', () => {
 			if (this.rl) {
-				log('Exiting');
+				// log('Exiting');
 				console.log();
 				process.exit(0);
 			}
@@ -49,6 +51,7 @@ prompt.ask = async function ask(question) {
 		this.rl.question(q, response => {
 			let oldRl = this.rl;
 			this.rl = null;
+			// log('Closing rl');
 			oldRl.close();
 			this.customQuestion = false;
 			resolve(response);

@@ -1,21 +1,32 @@
 const prompt = require('./prompt');
 const log = require('./log');
+const db = require('./db');
+const bittrex = require('./bittrex');
+const command = require('./command');
+
+let currentMarket = null;
 
 async function main() {
 	while (true) {
-		const cmd = await prompt.ask();
-		if (cmd === 'q') {
-			return;
-		} else if (cmd === 'buy') {
-			let amount = await prompt.ask('How much? (default: 10; q to quit)');
-			if (amount === '') {
-				amount = 10;
+		const line = await prompt.ask();
+		const [ cmd, ...args ] = line.split(' ').filter(Boolean);
+
+		if (!cmd) {
+			continue;
+		}
+
+		try {
+			let commandResult = await command.process(cmd, args);
+			if (!commandResult) {
+				const markets = await bittrex.getMarkets();
+				log('TODO look for market ' + cmd);
 			}
-			if (isNaN(amount)) {
-				log('Not buying.');
-			} else {
-				log('Buying ' + Number(amount) + '...');
+
+			if (commandResult) {
+				log(commandResult);
 			}
+		} catch (err) {
+			log('Error:', err);
 		}
 	}
 }
@@ -26,9 +37,8 @@ main().then(() => {
 	log(err);
 });
 
-setInterval(() => {
-	// log('test');
-	prompt.setPrompt('New ' + Math.random());
-}, 800);
-
 require('./autoexit')();
+
+process.on('unhandledRejection', (err) => {
+	log(err.message);
+});

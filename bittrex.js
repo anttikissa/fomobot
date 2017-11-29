@@ -3,7 +3,7 @@
 const config = require('./config');
 const crypto = require('crypto');
 const request = require('request');
-const { log } = console;
+const log = require('./log');
 
 const BASE_URL = 'https://bittrex.com/api/v1.1';
 
@@ -81,9 +81,11 @@ async function getBalances() {
 }
 
 async function getMarkets() {
-	markets = await api('/public/getmarkets');
-	log(`Received ${markets.length} markets`);
-	// log(markets);
+	if (!markets) {
+		markets = await api('/public/getmarkets');
+		log(`Received ${markets.length} markets.`);
+	}
+	return markets;
 }
 
 function spread(ticker) {
@@ -104,29 +106,38 @@ async function getTicker() {
 	updatePrompt();
 }
 
-async function main() {
-	await Promise.all([
-		getBalances(),
-		getMarkets()
-	]);
+async function getOrders() {
+	return await api('/account/getorderhistory');
 
-
-	// let price = ticker.Ask;
-
-	if (false) {
-		let buyResult = await api('/market/buylimit', {
-			market: 'BTC-ETH',
-			quantity: '0.05',
-			rate: price
-		});
-
-		log('buy result', buyResult);
-	}
 }
 
-main().catch(err => {
-	log('Error', err);
-});
+async function getOrder(orderId) {
+	return await api('/account/getorder', { uuid: orderId });
+}
+
+// async function main() {
+// 	await Promise.all([
+// 		getBalances(),
+// 		getMarkets()
+// 	]);
+//
+//
+// 	// let price = ticker.Ask;
+//
+// 	// if (false) {
+// 	// 	let buyResult = await api('/market/buylimit', {
+// 	// 		market: 'BTC-ETH',
+// 	// 		quantity: '0.05',
+// 	// 		rate: price
+// 	// 	});
+// 	//
+// 	// 	log('buy result', buyResult);
+// 	// }
+// }
+//
+// main().catch(err => {
+// 	log('Error', err);
+// });
 
 // REPL
 const repl = require('repl');
@@ -204,16 +215,16 @@ async function myEval(cmd, context, filename, callback) {
 	callback(null, cmd);
 }
 
-function myWriter(stuff) {
-	if (stuff === undefined) {
-		return 'Hmm?';
-	}
-
-	return stuff;
-}
-
-let replInstance = repl.start({ prompt: '> ', eval: myEval, writer: myWriter });
-
 process.on('unhandledRejection', what => {
 	log('Unhandled', what);
 });
+
+module.exports = {
+	getTicker,
+	getBalances,
+	// buy,
+	// orderStatus
+	getOrders,
+	getOrder,
+	getMarkets
+};
