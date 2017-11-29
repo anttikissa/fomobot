@@ -233,6 +233,9 @@ Object.defineProperty(Interface.prototype, 'columns', {
 
 Interface.prototype.setPrompt = function(prompt) {
   this._prompt = prompt;
+  if (this.line !== undefined) {
+	  this._refreshLine();
+  }
 };
 
 
