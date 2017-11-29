@@ -231,9 +231,12 @@ Object.defineProperty(Interface.prototype, 'columns', {
   }
 });
 
-Interface.prototype.setPrompt = function(prompt) {
+Interface.prototype.setPrompt = function(prompt, options = {}) {
+  if (options.refresh === undefined) {
+    options.refresh = true;
+  }
   this._prompt = prompt;
-  if (this.line !== undefined) {
+  if (this.line !== undefined && options.refresh) {
 	  this._refreshLine();
   }
 };
@@ -279,7 +282,7 @@ Interface.prototype._onLine = function(line) {
   if (this._questionCallback) {
     var cb = this._questionCallback;
     this._questionCallback = null;
-    this.setPrompt(this._oldPrompt);
+    this.setPrompt(this._oldPrompt, { refresh: false });
     cb(line);
   } else {
     this.emit('line', line);
