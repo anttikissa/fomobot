@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "chokidar": "^1.7.0",
     "request": "^2.83.0"
   }
 }

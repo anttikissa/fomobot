@@ -1,0 +1,11 @@
+#!/bin/bash
+
+while true
+do
+	node ./main
+	RESULT=$?
+	if [ "$RESULT" -ne "10" ]
+	then
+		exit
+	fi
+done
