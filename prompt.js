@@ -16,14 +16,19 @@ prompt.log = function(str) {
 	}
 };
 
+// Are we asking a custom question?
+// In that case, setPrompt() will not have an immediate effect.
+prompt.customQuestion = false;
+
 prompt.setPrompt = function(prefix) {
 	this.prompt = prefix + '> ';
-	if (this.rl) {
+	if (this.rl && !this.customQuestion) {
 		this.rl.setPrompt(this.prompt);
 	}
 };
 
-prompt.ask = async function ask() {
+// Ask a question. If question is not specified, use prompt.prompt.
+prompt.ask = async function ask(question) {
 	const result = await new Promise(resolve => {
 		this.rl = readline.createInterface({
 			input: process.stdin,
@@ -38,10 +43,14 @@ prompt.ask = async function ask() {
 			}
 		});
 
-		this.rl.question(this.prompt, response => {
+		let q = question ? question + '> ' : this.prompt;
+		this.customQuestion = !!question;
+
+		this.rl.question(q, response => {
 			let oldRl = this.rl;
 			this.rl = null;
 			oldRl.close();
+			this.customQuestion = false;
 			resolve(response);
 		});
 	});
