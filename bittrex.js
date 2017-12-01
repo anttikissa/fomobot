@@ -83,6 +83,7 @@ async function getBalances() {
 async function getMarkets() {
 	if (!markets) {
 		markets = await api('/public/getmarkets');
+//		markets = await api('/public/getmarketsummaries');
 		log(`Received ${markets.length} markets.`);
 	}
 	return markets;

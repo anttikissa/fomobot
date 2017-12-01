@@ -20,6 +20,10 @@ const commands = {
 		}
 	},
 
+	async m() {
+		return await bittrex.getMarkets();
+	},
+
 	async o(orderId) {
 		if (!orderId) {
 			return 'orderId required';
@@ -59,7 +63,7 @@ const commands = {
 			await db.trade.upsert(trade);
 		}
 
-		log(`Synchronized ${orders.length} orders.`);
+		return `Synchronized ${orders.length} orders.`;
 	}
 };
 
