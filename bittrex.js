@@ -4,6 +4,9 @@ const config = require('./config');
 const crypto = require('crypto');
 const request = require('request');
 const log = require('./log');
+const error = require('./error');
+
+const ctx = require('./context');
 
 const BASE_URL = 'https://bittrex.com/api/v1.1';
 
@@ -13,14 +16,12 @@ function sha512(secret, text) {
 	return hash.digest('hex');
 }
 
-const DEBUG = false;
-
 async function api(path, params) {
 	if (path[0] !== '/') {
 		throw new Error('Must begin with /');
 	}
 
-	if (DEBUG) {
+	if (ctx.debug) {
 		if (params) {
 			log('API call', path, params);
 		} else {
@@ -76,44 +77,98 @@ let markets = null;
 let ticker = null;
 
 async function getBalances() {
-	balances = await api('/account/getbalances');
-	log(`Received ${balances.length} balances.`);
+	return await api('/account/getbalances');
 }
+
+// Update markets at least every minute
+const MARKET_EXPIRY_DATE = 60000;
 
 async function getMarkets() {
-	if (!markets) {
-		markets = await api('/public/getmarkets');
-//		markets = await api('/public/getmarketsummaries');
-		log(`Received ${markets.length} markets.`);
-	}
-	return markets;
-}
-
-function spread(ticker) {
-	let diff = ticker.Ask - ticker.Bid;
-
-	let relative = (diff / ticker.Bid * 100).toFixed(2) + ' %';
-
-	return `${diff.toFixed(8)} (${relative})`;
-}
-
-async function getTicker() {
-	if (!currentMarket) {
-		throw new Error('No current market');
+	if (ctx.markets) {
+		if (Date.now() - ctx.marketsTimestamp > MARKET_EXPIRY_DATE) {
+			ctx.debug && log('Markets data too old, refreshing.');
+			ctx.markets = null;
+		}
 	}
 
-	ticker = await api('/public/getticker', { market: currentMarket.MarketName } );
-	log(`Last: ${ticker.Last}, Bid: ${ticker.Bid}, Ask: ${ticker.Ask}, Spread: ${spread(ticker)}`);
-	updatePrompt();
+	if (!ctx.markets) {
+		ctx.markets = await api('/public/getmarkets');
+		ctx.marketsTimestamp = Date.now();
+		ctx.updated();
+	}
+
+	return ctx.markets;
+}
+
+// Get market (e.g. 'eth') or undefined if not found
+// Market looks like:
+// {
+//  MarketCurrency: 'ETH',
+// 	BaseCurrency: 'BTC',
+// 	MarketCurrencyLong: 'Ethereum',
+// 	BaseCurrencyLong: 'Bitcoin',
+// 	MinTradeSize: 0.00565611,
+// 	MarketName: 'BTC-ETH',
+// 	IsActive: true,
+// 	Created: '2015-08-14T09:02:24.817',
+// 	Notice: null,
+// 	IsSponsored: null,
+// 	LogoUrl: 'https://bittrexblobstorage.blob.core.windows.net/public/7e5638ef-8ca0-404d-b61e-9d41c2e20dd9.png'
+// }
+async function getMarket(currency) {
+	currency = currency.toUpperCase();
+	let markets = await getMarkets();
+	let market = markets.find(market => market.MarketName === 'BTC-' + currency);
+	return market;
+}
+
+// Get ticker for current market, e.g. BTC-ETH
+async function getTicker(market) {
+	return await api('/public/getticker', { market });
 }
 
 async function getOrders() {
 	return await api('/account/getorderhistory');
-
 }
 
 async function getOrder(orderId) {
 	return await api('/account/getorder', { uuid: orderId });
+}
+
+async function getBalance(currency) {
+	return await api('/account/getbalance', { currency });
+}
+
+// Buys 'amount' currency at price 'limit' (BTC).
+// E.g. buy('eth', 1, 0.04912);
+async function buy(currency, amount, limit) {
+	let market = getMarket(currency);
+	if (!market) {
+		throw new Error('invalid market');
+	}
+
+	// let buyResult = await api('/market/buylimit', {
+	// 	market: currentMarket.MarketName,
+	// 	quantity: quantity.toFixed(2),
+	// 	rate: ticker.Ask * 0.995
+	// });
+
+
+	if (false) {
+		var buyResult = await api('/market/buylimit', {
+			market: currentMarket.MarketName,
+			quantity: xxx,
+			rate: price
+		});
+	} else {
+		log('FAKING buy');
+		buyResult = {
+			uuid: 'buy' + Math.random()
+		}
+	}
+
+	log('buy result', buyResult);
+	return buyResult;
 }
 
 // async function main() {
@@ -147,85 +202,19 @@ let currentMarket = null;
 let currentCurrency = null;
 let currentMinTradeSize = null;
 
-function updatePrompt() {
-	if (!currentMarket) {
-		return replInstance.setPrompt('no market> ');
-	}
-
-	if (ticker) {
-		tickerString = ticker.Last;
-		replInstance.setPrompt(`${currentMarket.MarketName} ${tickerString}> `);
-	} else {
-		replInstance.setPrompt(`${currentMarket.MarketName}> `);
-	}
-
-}
-
-async function myEval(cmd, context, filename, callback) {
-	if (!markets) {
-		return callback(null, 'No markets. Try again in a second');
-	}
-
-	cmd = cmd.trim();
-
-	if (!cmd) {
-		return callback(null, 'Please specify a market.');
-	}
-
-	let wantedMarket = 'BTC-' + cmd.toUpperCase();
-
-	let maybeMarket = markets.find(market => {
-		if (market.MarketName === wantedMarket) {
-			return true;
-		}
-	});
-
-	if (maybeMarket) {
-		let market = maybeMarket;
-		// log('Found market', market);
-		updatePrompt();
-
-		currentMarket = market;
-		currentCurrency = market.MarketCurrency;
-		currentMinTradeSize = market.MinTradeSize;
-		log(`Market ${currentMarket.MarketName} (${currentMarket.MarketCurrencyLong}), min trade ${currentMinTradeSize} ${currentCurrency}`);
-		await getTicker();
-	} else {
-		callback(null, `Market not found: ${wantedMarket}`);
-	}
-
-	if (cmd === 'buy') {
-		let quantity = 5211.047420531527;
-
-		log('BUY', {
-			market: currentMarket.MarketName,
-			quantity: quantity.toFixed(2),
-			rate: ticker.Ask * 0.995
-		});
-
-		let buyResult = await api('/market/buylimit', {
-			market: currentMarket.MarketName,
-			quantity: quantity.toFixed(2),
-			rate: ticker.Ask * 0.995
-		});
-
-		log('buy result', buyResult);
-
-	}
-
-	callback(null, cmd);
-}
-
 process.on('unhandledRejection', what => {
 	log('Unhandled', what);
 });
 
 module.exports = {
+	getMarkets,
+	getMarket,
+
 	getTicker,
 	getBalances,
-	// buy,
+
+	buy,
 	// orderStatus
 	getOrders,
 	getOrder,
-	getMarkets
 };

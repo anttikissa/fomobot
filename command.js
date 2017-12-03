@@ -3,25 +3,46 @@ const log = require('./log');
 const bittrex = require('./bittrex');
 const db = require('./db');
 
+const context = require('./context');
+
 const commands = {
 	q() {
 		process.exit(0);
 	},
 
-	async buy() {
-		let amount = await prompt.ask('How much? (default: 10; q to quit)');
+	async b() {
+		if (!context.currentMarket) {
+			return 'Choose market first';
+		}
+
+		let currency = context.currentMarket.MarketCurrency;
+
+		let defaultAmount = 0.01;
+
+		let amount = await prompt.ask(`Amount of BTC to spend [${defaultAmount}]`);
+
 		if (amount === '') {
-			amount = 10;
+			amount = defaultAmount;
 		}
+
 		if (isNaN(amount)) {
-			log('Not buying.');
-		} else {
-			log('Buying ' + Number(amount) + '...');
+			return 'Not buying.';
 		}
+
+		log(`Buying ${Number(amount)} ${currency}...`);
+
+		return await bittrex.buy(currency, amount);
 	},
 
 	async m() {
-		return await bittrex.getMarkets();
+		let markets = await bittrex.getMarkets();
+		markets = markets.filter(market => market.BaseCurrency === 'BTC').sort((x, y) => {
+			return x.MarketName < y.MarketName ? -1 : x.MarketName === y.MarketName ? 0 : 1;
+		});
+
+		return markets.map(market => {
+			return market.MarketName + ' (' + market.MarketCurrencyLong + '), min trade size ' + market.MinTradeSize;
+		}).join('\n');
 	},
 
 	async o(orderId) {

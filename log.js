@@ -1,7 +1,7 @@
 const util = require('util');
 const prompt = require('./prompt');
 
-const log = (...args) => {
+const format = (...args) => {
 	const stringify = (s) => {
 		if (typeof s === 'string') {
 			return s;
@@ -11,7 +11,14 @@ const log = (...args) => {
 	};
 
 	const str = args.map(stringify).join(' ');
-	prompt.log(str);
+
+	return str;
 };
+
+const log = (...args) => {
+	prompt.log(format(...args));
+};
+
+log.format = format;
 
 module.exports = log;
