@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const request = require('request');
 const log = require('./log');
 const error = require('./error');
+const util = require('./util');
 
 const ctx = require('./context');
 
@@ -80,8 +81,8 @@ async function getBalances() {
 	return await api('/account/getbalances');
 }
 
-// Update markets at least every minute
-const MARKET_EXPIRY_DATE = 60000;
+// Update markets at least every... 10 minutes.
+const MARKET_EXPIRY_DATE = 10 * 60 * 1000;
 
 async function getMarkets() {
 	if (ctx.markets) {
@@ -127,8 +128,14 @@ async function getTicker(market) {
 	return await api('/public/getticker', { market });
 }
 
-async function getOrders() {
-	return await api('/account/getorderhistory');
+// market (e.g. BTC-RBY or just RBY) is optional
+async function getOrders(market) {
+	let options = {};
+	if (market) {
+		options.market = util.toMarket(market);
+	}
+
+	return await api('/account/getorderhistory', options);
 }
 
 async function getOrder(orderId) {
@@ -171,6 +178,10 @@ async function buy(currency, amount, limit) {
 	return buyResult;
 }
 
+async function getDeposits() {
+	return await api('/account/getdeposithistory');
+}
+
 // async function main() {
 // 	await Promise.all([
 // 		getBalances(),
@@ -202,10 +213,6 @@ let currentMarket = null;
 let currentCurrency = null;
 let currentMinTradeSize = null;
 
-process.on('unhandledRejection', what => {
-	log('Unhandled', what);
-});
-
 module.exports = {
 	getMarkets,
 	getMarket,
@@ -217,4 +224,6 @@ module.exports = {
 	// orderStatus
 	getOrders,
 	getOrder,
+
+	getDeposits,
 };

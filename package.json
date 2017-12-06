@@ -1,7 +1,13 @@
 {
-  "dependencies": {
-    "chokidar": "^1.7.0",
-    "mysql": "^2.15.0",
-    "request": "^2.83.0"
-  }
+	"dependencies": {
+		"chokidar": "^1.7.0",
+		"mysql": "^2.15.0",
+		"request": "^2.83.0",
+		"telegram-mtproto": "^3.2.11"
+	},
+	"prettier": {
+		"useTabs": true,
+		"singleQuote": true,
+		"printWidth": 100
+	}
 }

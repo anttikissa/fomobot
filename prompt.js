@@ -45,7 +45,7 @@ prompt.ask = async function ask(question) {
 			}
 		});
 
-		let q = question ? question + '> ' : this.prompt;
+		let q = question !== undefined ? question + '> ' : this.prompt;
 		this.customQuestion = !!question;
 
 		this.rl.question(q, response => {

@@ -1,5 +1,5 @@
-const prompt = require('./prompt');
 const log = require('./log');
+const prompt = require('./prompt');
 // const db = require('./db');
 const bittrex = require('./bittrex');
 const command = require('./command');
@@ -35,10 +35,6 @@ async function trySetMarket(currency) {
 	ctx.updated();
 
 	await updateTicker();
-
-	if (ctx.debug) {
-		log('set context', ctx);
-	}
 }
 
 async function main() {
@@ -57,17 +53,15 @@ async function main() {
 		}
 
 		try {
-			let commandResult = await command.process(cmd, args);
-			if (!commandResult) {
-				await trySetMarket(cmd);
-			}
-
-			if (commandResult) {
+			if (command.isCommand(cmd)) {
+				let commandResult = await command.process(cmd, args);
 				log(commandResult);
+			} else {
+				await trySetMarket(cmd);
 			}
 		} catch (err) {
 			if (err instanceof error.UserError) {
-				log('ERROR', err.message);
+				log('Error', err.message);
 			} else {
 				log(err);
 			}
@@ -83,6 +77,7 @@ main().then(() => {
 
 require('./autoexit')();
 
-process.on('unhandledRejection', (err) => {
-	log(err.message);
-});
+// process.on('unhandledRejection', (err) => {
+// 	console.log(err, err.stack);
+// });
+

@@ -1,4 +1,5 @@
 const log = require('./log');
+const error = require('./error');
 const mysql = require('mysql');
 
 // Convert { a: 1, b: { c: 2, d: 3 } }
@@ -10,8 +11,9 @@ function flatten(data, prefix = '', result = {}) {
 		let value = data[key];
 		const isArray = Array.isArray(value);
 		const isDate = value instanceof Date;
+		const isNull = value === null;
 		const isObject = typeof data[key] === 'object';
-		if (isObject && !isArray && !isDate) {
+		if (isObject && !isArray && !isDate && !isNull) {
 			flatten(value, prefix + key + '_', result);
 		} else {
 			result[prefix + key] = value;
@@ -24,12 +26,48 @@ function flatten(data, prefix = '', result = {}) {
 // log(flatten({ a: 1, b: { c: 2, d: 3 } }));
 // log(flatten({ a: 1, b: { c: 2, d: 3, xxx: { y: 'zing', box: [1,2,3], pow: new Date() } } }));
 
+function objectToCriteria(object) {
+	log('OBJECT', object);
+
+	let sql = Object.keys(object).map(key => {
+		return `\`${key}\` = ?`;
+	}).join(' AND ');
+
+	log('SQL', sql);
+
+	let args = Object.keys(object).map(key => object[key]);
+
+	log('args', args);
+
+	return {
+		sql, args
+	};
+}
 class Table {
 	constructor(db, name) {
 		this.db = db;
 		this.name = name;
 	}
 
+	async select(criteria) {
+		if (typeof criteria === 'object') {
+			let { sql, args } = objectToCriteria(criteria);
+			return await db.query(`SELECT * from \`${this.name}\` WHERE ${sql}`, ...args);
+		} else if (criteria === undefined) {
+			return await db.query(`SELECT * from \`${this.name}\``);
+		} else {
+			throw new Error('TODO implement criteria ' + criteria);
+		}
+	}
+
+	async selectOne(criteria) {
+		let results = await this.select(criteria);
+		if (results.length > 1) {
+			throw new Error('selectOne, too many results');
+		}
+		return results[0];
+	}
+	
 	async insert(data) {
 		data = flatten(data);
 
@@ -45,7 +83,19 @@ class Table {
 		return { insertId };
 	}
 
+	// update(123, { key: 'value' })
+	// or
+	// update({ id: 123, key: 'value' })
 	async update(id, data) {
+		if (id === undefined) {
+			error('No id');
+		}
+
+		if (data === undefined) {
+			data = id;
+			id = data.id;
+		}
+
 		data = flatten(data);
 
 		let {
@@ -79,6 +129,7 @@ class DB {
 	// Call like db.query`SELECT * FROM data WHERE userId = ${userId}`
 	// or like db.query('SELECT * FROM data WHERE userId = ?', userId);
 	async query(sqlParts, ...args) {
+		// log('sql', sqlParts, ...args);
 		let sql;
 
 		if (typeof sqlParts === 'string') {
@@ -106,6 +157,14 @@ class DB {
 				});
 			})
 		});
+	}
+
+	async queryOne(sqlParts, ...args) {
+		let results = await this.query(sqlParts, ...args);
+		if (results.length > 1) {
+			throw new Error('queryOne, too many results');
+		}
+		return results[0];
 	}
 }
 

@@ -2,8 +2,9 @@ const log = require('./log');
 
 // UserError is a class of error that doesn't cause a stacktrace to be printed.
 class UserError extends Error {
-	constructor(...args) {
+	constructor(message) {
 		super();
+		this.message = message;
 	}
 }
 
