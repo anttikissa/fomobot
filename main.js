@@ -6,12 +6,12 @@ const print = log.print;
 const commands = {
 	help: () => 'hello',
 	hello: (...who) => print('hello ', ...who),
-	sleep: async() => {
+	sleep: async () => {
 		let len = await prompt.ask('How long?');
 		return new Promise(resolve => {
 			setTimeout(resolve, len || 500);
-		})
-	}
+		});
+	},
 };
 
 function commandsCompleter(line) {
@@ -23,7 +23,7 @@ function commandsCompleter(line) {
 async function main() {
 	while (true) {
 		const line = await prompt.ask('', commandsCompleter);
-		const [ cmd, ...args ] = line.split(' ').filter(Boolean);
+		const [cmd, ...args] = line.split(' ').filter(Boolean);
 
 		try {
 			if (!cmd) {
@@ -41,7 +41,6 @@ async function main() {
 				log(err);
 			}
 		}
-
 	}
 }
 
