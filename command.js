@@ -160,8 +160,58 @@ const commands = {
 		return `Synchronized ${orders.length} orders.`;
 	},
 
+	// List all positions
 	async pos() {
-		return await db.position.select();
+		let positions = await db.query('select * from position where amount > 0');
+		let prices = await this.pri();
+
+		let profitable = 0;
+		let loss = 0;
+
+		let plSum = 0;
+
+		for (let pos of positions) {
+			let curr = pos.currency;
+
+			let price = prices[curr].last;
+			let shouldSell = price < pos.stop;
+
+			if (shouldSell) {
+				if (pos.amount < 0) {
+					throw new Error('No shorts supported');
+				}
+
+				log('YOU SHOULD SELL ' + curr + ', amount ' + pos.amount + ' at ' + price * 0.99);
+				log(`Stop-loss was at ${pos.stop}, current price ${price}`);
+
+				// Auto-sell losing positions
+				if (false) {
+					try {
+						await bittrex.sell(curr, pos.amount, util.round(price * 0.99));
+					} catch (err) {
+						log('Could not sell', err);
+					}
+				}
+			}
+
+			let pl = (price / pos.price - 1) * 100;
+			plSum += pl;
+			log(`Position ${curr}, amount ${pos.amount}, value ${pos.value}, base price ${pos.price}, current ${price}, pl ${pl.toFixed(2)} %`);
+			if (pl > 0) {
+				profitable++;
+			} else if (pl < 0) {
+				loss++;
+			}
+		}
+
+		let plAvg = plSum / positions.length;
+
+		if (positions.length) {
+			return `Profitable positions: ${profitable}, losing positions: ${loss}, average P/L: ${plAvg.toFixed(2)} %`;
+		} else {
+			return `Profitable positions: ${profitable}, losing positions: ${loss}`;
+
+		}
 	},
 
 	// Finds trades that are not associated with a position and creates positions out of them.
@@ -207,7 +257,7 @@ AND amount != 0
 						value: trade.value,
 						max_value: Math.abs(trade.value),
 						fees: trade.fee,
-						price: util.round(trade.value / trade.amount),
+						price: util.round(-trade.value / trade.amount),
 						last_trade_price: trade.price,
 						target: util.round(1.04 * trade.price),
 						stop: util.round(0.98 * trade.price),
@@ -230,7 +280,7 @@ AND amount != 0
 					position.max_value = Math.max(Math.abs(position.value), position.max_value);
 
 					if (position.amount !== 0) {
-						position.price = util.round(position.value / position.amount);
+						position.price = util.round(-position.value / position.amount);
 					}
 
 					if (position.amount === 0) {
@@ -272,7 +322,7 @@ AND amount != 0
 					position.max_value = Math.max(Math.abs(trade.value), position.max_value);
 
 					if (position.amount !== 0) {
-						position.price = util.round(position.value / position.amount);
+						position.price = util.round(-position.value / position.amount);
 					}
 
 					if (position.amount === 0) {
@@ -296,7 +346,11 @@ AND amount != 0
 
 	async dep() {
 		return await bittrex.getDeposits();
-	}
+	},
+
+	async pri() {
+		return util.organizeBy(await bittrex.getPrices(), 'currency');
+	},
 };
 
 module.exports = {

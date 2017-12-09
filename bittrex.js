@@ -101,6 +101,23 @@ async function getMarkets() {
 	return ctx.markets;
 }
 
+async function getPrices() {
+	let markets = await api('/public/getmarketsummaries');
+	return markets.map(market => {
+
+		let currency = market.MarketName.split('-')[1];
+		let baseCurrency = market.MarketName.split('-')[0];
+
+		return {
+			currency,
+			baseCurrency,
+			bid: market.Bid,
+			ask: market.Ask,
+			last: market.Last
+		}
+	}).filter(market => market.baseCurrency === 'BTC');
+}
+
 // Get market (e.g. 'eth') or undefined if not found
 // Market looks like:
 // {
@@ -178,6 +195,28 @@ async function buy(currency, amount, limit) {
 	return buyResult;
 }
 
+// Sells `amount` `currency` at price `limit`.
+async function sell(currency, amount, limit) {
+	log('SEL', currency, amount, limit);
+	// return;
+
+	let market = await getMarket(currency);
+	if (!market) {
+		throw new Error('invalid market');
+	}
+
+	let result = await api('/market/selllimit', {
+		market: market.MarketName,
+		quantity: amount,
+		rate: limit
+	});
+
+	log('sell result', result);
+
+	return result;
+
+}
+
 async function getDeposits() {
 	return await api('/account/getdeposithistory');
 }
@@ -221,9 +260,12 @@ module.exports = {
 	getBalances,
 
 	buy,
+	sell,
+
 	// orderStatus
 	getOrders,
 	getOrder,
 
 	getDeposits,
+	getPrices
 };

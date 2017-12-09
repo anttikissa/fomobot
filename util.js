@@ -17,6 +17,18 @@ module.exports = {
 
 	round(number, digits = 8) {
 		return Math.round(number * Math.pow(10, digits)) / Math.pow(10, digits);
+	},
+
+	// organizeBy([{ id: 1, name: 'x' }, { id: 2, name: 'y' }], 'id')
+	// => { 1: { id: 1, name: 'x, }, 2: { id: 2, name: 'y' } }
+	organizeBy(things, key) {
+		let result = {};
+		for (let thing of things) {
+			let val = thing[key];
+			result[val] = thing;
+		}
+
+		return result;
 	}
 
 };
