@@ -15,10 +15,20 @@ const format = (...args) => {
 	return str;
 };
 
+const date = () => {
+	return new Date().toISOString().replace('T', ' ').replace('Z', '');
+};
+
 const log = (...args) => {
-	prompt.log(format(...args));
+	prompt.log(`${date()} ${format(...args)}`);
+};
+
+// Without the timestamp, good for interactive UI
+const print = (...args) => {
+	prompt.log(`${format(...args)}`);
 };
 
 log.format = format;
+log.print = print;
 
 module.exports = log;

@@ -28,13 +28,12 @@ prompt.setPrompt = function(prefix) {
 };
 
 // Ask a question. If question is not specified, use prompt.prompt.
-prompt.ask = async function ask(question) {
+prompt.ask = async function ask(question, completer = null) {
 	const result = await new Promise(resolve => {
-		// log('opening rl');
-
 		this.rl = readline.createInterface({
 			input: process.stdin,
-			output: process.stdin
+			output: process.stdin,
+			completer: completer
 		});
 
 		this.rl.on('close', () => {
