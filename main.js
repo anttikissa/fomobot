@@ -1,17 +1,22 @@
 const error = require('./error');
 const prompt = require('./prompt');
 const commands = require('./commands');
+const ctx = require('./context');
 
 const log = require('./log');
 const print = log.print;
 
 async function main() {
+
 	while (true) {
-		const line = await prompt.ask('', commands.completer);
+		const line = await prompt.ask(null, commands.completer);
 		const [cmd, ...args] = line.split(' ').filter(Boolean);
 
 		try {
 			if (!cmd) {
+				if (ctx.currentMarket) {
+					await commands.run('ticker');
+				}
 				continue;
 			}
 			if (!commands.isCommand(cmd)) {

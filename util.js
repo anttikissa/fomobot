@@ -39,6 +39,16 @@ const util = {
 		return util.pad(result, 8 + 1 + 6);
 	},
 
+	// Format for contexts with no padding
+	formatNoPad(number) {
+		let result = number;
+		if (typeof result === 'number') {
+			result = number.toFixed(8);
+		}
+
+		return result;
+	},
+
 	// organizeBy([{ id: 1, name: 'x' }, { id: 2, name: 'y' }], 'id')
 	// => { 1: { id: 1, name: 'x, }, 2: { id: 2, name: 'y' } }
 	organizeBy(things, key) {

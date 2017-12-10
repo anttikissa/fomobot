@@ -2,6 +2,8 @@ const readline = require('./node/readline');
 const prompt = {};
 module.exports = prompt;
 
+let log = console.log;
+
 // Usage:
 prompt.rl = null;
 prompt.prompt = '> ';
@@ -79,7 +81,7 @@ prompt.ask = async function ask(question = null, completer = null) {
 			}
 		});
 
-		let q = question !== undefined ? question + '> ' : this.prompt;
+		let q = question != null ? question + '> ' : this.prompt;
 		this.customQuestion = !!question;
 
 		this.rl.question(q, response => {
@@ -121,5 +123,14 @@ setTimeout(() => {
 		prompt.saveHistoryAndCurrentLine();
 	});
 }, 1);
+
+prompt.updatePromptFromContext = () => {
+	let ctx = require('./context');
+	if (ctx.currentMarket) {
+		prompt.setPrompt(ctx.currentMarket.MarketCurrency);
+	}
+};
+
+prompt.updatePromptFromContext();
 
 module.exports = prompt;
