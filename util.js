@@ -1,4 +1,5 @@
-module.exports = {
+
+const util = {
 	spread(ticker) {
 		let diff = ticker.Ask - ticker.Bid;
 
@@ -19,6 +20,25 @@ module.exports = {
 		return Math.round(number * Math.pow(10, digits)) / Math.pow(10, digits);
 	},
 
+	pad(str, n = 2) {
+		let result = String(str);
+		while (result.length < n) {
+			result = ' ' + result;
+		}
+		return result;
+	},
+
+	// Format crypto number for presentation
+	format(number) {
+		let result = number;
+		if (typeof result === 'number') {
+			result = number.toFixed(8);
+		}
+
+		// Enough for 123456.12341234
+		return util.pad(result, 8 + 1 + 6);
+	},
+
 	// organizeBy([{ id: 1, name: 'x' }, { id: 2, name: 'y' }], 'id')
 	// => { 1: { id: 1, name: 'x, }, 2: { id: 2, name: 'y' } }
 	organizeBy(things, key) {
@@ -30,5 +50,6 @@ module.exports = {
 
 		return result;
 	}
-
 };
+
+module.exports = util;

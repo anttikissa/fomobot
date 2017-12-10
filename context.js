@@ -36,6 +36,6 @@ context.updated = function() {
 };
 
 // TODO
-context.debug = true;
+// context.debug = true;
 
 module.exports = context;
