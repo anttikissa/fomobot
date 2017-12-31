@@ -1,8 +1,10 @@
 {
 	"dependencies": {
 		"chokidar": "^1.7.0",
+		"lodash": "^4.17.4",
 		"mysql": "^2.15.0",
 		"request": "^2.83.0",
+		"socketcluster-client": "5.5.2",
 		"telegram-mtproto": "^3.2.11"
 	},
 	"prettier": {

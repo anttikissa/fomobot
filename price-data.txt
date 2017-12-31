@@ -1,0 +1,66 @@
+ORDER-BINA--TRX--BTC data {
+{ price: '0.00000337',
+    quantity: 4690557,
+    ordertype: 'Sell',
+    total: 15.80717709 },
+  { price: '0.00000336',
+    quantity: 1848955,
+    ordertype: 'Sell',
+    total: 6.2124888 },
+  { price: '0.00000335',
+    quantity: 3858641,
+    ordertype: 'Sell',
+    total: 12.92644735 },
+  { price: '0.00000334',
+    quantity: 263869,
+    ordertype: 'Sell',
+    total: 0.88132246 },
+  ...
+  { price: '0.00000317',
+      quantity: 1673184,
+      ordertype: 'Buy',
+      total: 5.30399328 },
+    { price: '0.00000316',
+      quantity: 394844,
+      ordertype: 'Buy',
+      total: 1.2477070399999999 },
+    { price: '0.00000315',
+      quantity: 1776160,
+      ordertype: 'Buy',
+      total: 5.594904 },
+    { price: '0.00000314',
+      quantity: 999921,
+      ordertype: 'Buy',
+      total: 3.13975194 },
+    { price: '0.00000313',
+      quantity: 620419,
+      ordertype: 'Buy',
+      total: 1.94191147 },
+    { price: '0.00000312',
+      quantity: 499550,
+      ordertype: 'Buy',
+      total: 1.558596 },
+  ...
+}
+
+
+TRADE-BINA--TRX--BTC data {
+market_history_id: 144308226788,
+  exchange: 'BINA',
+  marketid: 0,
+  label: 'TRX/BTC',
+  tradeid: '1847942',
+  time: '2017-12-31T14:51:56',
+  price: 0.0000032,
+  quantity: 7473,
+  total: 0.0239136,
+  timestamp: '2017-12-31T14:51:57Z',
+  time_local: '2017-12-31 14:51:56',
+  type: 'SELL',
+  exchId: 0,
+  channel: 'TRADE-BINA--TRX--BTC'
+}
+
+on trade, pick
+	let exchange = trade.exchange;
+	let label

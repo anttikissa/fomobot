@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 const config = require('./config');
 const crypto = require('crypto');
 const request = require('request');

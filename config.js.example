@@ -4,6 +4,11 @@ module.exports = {
 		API_SECRET: 'xxx'
 	},
 
+	coinigy: {
+		API_KEY: 'xxx',
+		API_SECRET: 'xxx'
+	},
+
 	db: {
 		host: 'localhost'
 		user: 'fomobot',

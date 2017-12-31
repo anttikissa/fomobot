@@ -126,6 +126,7 @@ class DB {
 		// old
 		this.trade = this.table('trade');
 		this.order = this.table('order');
+		this.trade_history = this.table('trade_history');
 	}
 
 	table(name) {
