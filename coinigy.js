@@ -66,8 +66,8 @@ socket.on('connect', function(status) {
 			});
 
 			myChannels = myChannels.filter(channel => {
-				// return true;
-				result = channel.match(/ETH--BTC/);
+				return true;
+				// result = channel.match(/ETH--BTC/);
 				// if (result) {
 				// 	result = channel.match('BINA');
 				// }
@@ -172,10 +172,13 @@ socket.on('connect', function(status) {
 							total
 						};
 
+						var obData = '';
+
 						if (orderBook) {
 							if (orderBook.buys[0]) {
 								tradeData.ob_buy_1_price = orderBook.buys[0].price;
 								tradeData.ob_buy_1_quantity = orderBook.buys[0].quantity;
+								obData += ` ob buy ${orderBook.buys[0].quantity} at ${orderBook.buys[0].price}`;
 							}
 
 							if (orderBook.buys[1]) {
@@ -191,6 +194,7 @@ socket.on('connect', function(status) {
 							if (orderBook.sells[0]) {
 								tradeData.ob_sell_1_price = orderBook.sells[0].price;
 								tradeData.ob_sell_1_quantity = orderBook.sells[0].quantity;
+								obData += ` ob sell ${orderBook.sells[0].quantity} at ${orderBook.sells[0].price}`;
 							}
 
 							if (orderBook.sells[1]) {
@@ -202,10 +206,13 @@ socket.on('connect', function(status) {
 								tradeData.ob_sell_3_price = orderBook.sells[2].price;
 								tradeData.ob_sell_3_quantity = orderBook.sells[2].quantity;
 							}
+
 						}
 
+						log(`${pairId} ${orderType} ${quantity} at ${price} (${tradeId})${obData}`);
+
 						db.trade_history.upsert(tradeData).then(result => {
-							log('db result', result);
+							// log('db result', result);
 						}).catch(err => {
 							log('DB error', err);
 						});
