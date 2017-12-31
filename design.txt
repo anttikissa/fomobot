@@ -1,0 +1,80 @@
+# How do positions work?
+
+Open position
+
+ASSUME no existing position right now
+
+Currency = ctx.currentMarket.MarketCurrency, e.g. ADA
+Get current price (Last price), e.g. 0.00000769.
+Get (constant) buy amount btc, e.g. 0.01
+Get amount to buy: btc / price, or: 0.01 / 0.00000769 = '1300.39011704'
+
+Aways toFixed to 8 decimals
+
+Set stop: 0.95 * base_price;
+Set limit: 1.05 * base_price;
+
+order_uuid = await /market/buylimit {
+	market: MarketName (e.g. 'BTC-ADA'),
+	quantity: amount ('1300.39011704'),
+	rate: entry_price ('0.00000769),
+}
+
+-> insert into position {
+	currency: 'ada',
+	entry_price: '0.00000769',
+	entry_order_id: order_uuid,
+	amount: '1300.39011704',
+	stop_price: '0.00000731',
+	stop_order_id: null,
+	limit_price: '0.00000807'
+	limit_order_id: null
+	closed_at: null
+}
+
+table order is {
+	exchange_id: <order id at exchange>
+	type: 'buy' | 'sell',
+	amount: '1300.39011704',
+	amount_filled: '500.12312',
+	price: '0.00000769',
+	status: 'new', 'partially_filled', 'filled', 'canceled',
+	closed_at: null | date
+	created_at: ...,
+	update_at: ...
+}
+
+for each order with closed_at != null,
+every 10 seconds or so, get order status and update amount_filled and
+status
+
+status is:
+if closed_at === null
+	amount_filled === 0 => 'untouched'
+	amount_filled ...
+
+status: untouched when closed_at is null and amount
+
+For each position with entry_order_closed_at = null,
+Check order position.entry_order every 5 seconds.
+When order is filled or is 5 minutes old:
+  - update entry_order_closed_at
+  - update amount (if not filled completely)
+  - cancel entry_order (if not filled completely)
+  - update entry_order_closed_at
+  - if amount = 0 after order closed/canceled, close the position too
+TODO for better raporting, maintain entry_order_
+
+For each position with entry_order_closed_at != null, check price every minute.
+
+If price > (base_price + limit_price) / 2:
+  if have stop order:
+    await cancel stop_order
+    set stop_order = null
+  place limit order at limit_price:
+    await /market/selllimit {
+		market: 'BTC-ADA',
+		quantity: '1300.39011704',
+		rate:
+	}
+

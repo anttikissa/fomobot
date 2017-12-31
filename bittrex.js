@@ -171,34 +171,18 @@ async function buy(currency, amount, limit) {
 		throw new Error('invalid market');
 	}
 
-	// let buyResult = await api('/market/buylimit', {
-	// 	market: currentMarket.MarketName,
-	// 	quantity: quantity.toFixed(2),
-	// 	rate: ticker.Ask * 0.995
-	// });
+	let buyResult = await api('/market/buylimit', {
+		market: currentMarket.MarketName,
+		quantity: amount,
+		rate: limit
+	});
 
-
-	if (false) {
-		var buyResult = await api('/market/buylimit', {
-			market: currentMarket.MarketName,
-			quantity: xxx,
-			rate: price
-		});
-	} else {
-		log('FAKING buy');
-		buyResult = {
-			uuid: 'buy' + Math.random()
-		}
-	}
-
-	log('buy result', buyResult);
 	return buyResult;
 }
 
 // Sells `amount` `currency` at price `limit`.
 async function sell(currency, amount, limit) {
 	log('SEL', currency, amount, limit);
-	// return;
 
 	let market = await getMarket(currency);
 	if (!market) {

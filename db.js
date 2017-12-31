@@ -27,17 +27,21 @@ function flatten(data, prefix = '', result = {}) {
 // log(flatten({ a: 1, b: { c: 2, d: 3, xxx: { y: 'zing', box: [1,2,3], pow: new Date() } } }));
 
 function objectToCriteria(object) {
-	log('OBJECT', object);
+	// log('OBJECT', object);
 
 	let sql = Object.keys(object).map(key => {
-		return `\`${key}\` = ?`;
+		if (object[key] === null) {
+			return `${key} IS NULL`;
+		} else {
+			return `\`${key}\` = ?`;
+		}
 	}).join(' AND ');
 
-	log('SQL', sql);
+	// log('SQL', sql);
 
-	let args = Object.keys(object).map(key => object[key]);
+	let args = Object.keys(object).map(key => object[key]).filter(key => key !== null);
 
-	log('args', args);
+	// log('args', args);
 
 	return {
 		sql, args
@@ -119,7 +123,9 @@ class DB {
 		});
 
 		this.position = this.table('position');
+		// old
 		this.trade = this.table('trade');
+		this.order = this.table('order');
 	}
 
 	table(name) {

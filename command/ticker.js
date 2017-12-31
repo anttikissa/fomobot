@@ -11,5 +11,5 @@ module.exports = async () => {
 	let fmt = util.formatNoPad;
 	let curr = ctx.currentMarket.MarketCurrency;
 	let ticker = await btx.getTicker(ctx.currentMarket.MarketName);
-	print(`${util.pad(curr, 4)}: ask ${fmt(ticker.Ask)}, bid ${fmt(ticker.Bid)}, last ${fmt(ticker.Last)}`);
+	print(`${curr}: ask ${fmt(ticker.Ask)}, bid ${fmt(ticker.Bid)}, last ${fmt(ticker.Last)}, spread ${util.spread(ticker)}`);
 };

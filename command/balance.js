@@ -13,9 +13,9 @@ module.exports = async () => {
 		};
 	});
 
-	print(`${util.pad('curr', 4)} ${util.format('available')} ${util.format('balance')}`);
+	print(`${util.pad('curr', 5)} ${util.format('available')} ${util.format('balance')}`);
 
 	for (let b of bal) {
-		print(`${util.pad(b.currency, 4)} ${util.format(b.available)} ${util.format(b.balance)}`);
+		print(`${util.pad(b.currency, 5)} ${util.format(b.available)} ${util.format(b.balance)}`);
 	}
 };
