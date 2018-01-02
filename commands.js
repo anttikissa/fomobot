@@ -47,6 +47,9 @@ for (let market of ctx.markets) {
 		ctx.currentMarket = market;
 		ctx.updated();
 		prompt.updatePromptFromContext();
+		ctx.currentMarketAsk = null;
+		ctx.currentMarketBid = null;
+
 		await commands.ticker();
 	}
 	commands[lower] = setMarket;

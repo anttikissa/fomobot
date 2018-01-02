@@ -19,6 +19,8 @@ const context = {
 	// }
 
 	currentMarket: null,
+	currentMarketAsk: null,
+	currentMarketBid: null,
 
 	debug: false,
 };

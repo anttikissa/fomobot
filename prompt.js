@@ -1,6 +1,9 @@
 const readline = require('./node/readline');
+
 const prompt = {};
 module.exports = prompt;
+
+let util = require('./util');
 
 let log = console.log;
 
@@ -127,7 +130,14 @@ setTimeout(() => {
 prompt.updatePromptFromContext = () => {
 	let ctx = require('./context');
 	if (ctx.currentMarket) {
-		prompt.setPrompt(ctx.currentMarket.MarketCurrency);
+		if (ctx.currentMarketBid && ctx.currentMarketAsk) {
+			let bid = ctx.currentMarketBid;
+			let ask = ctx.currentMarketAsk;
+
+			prompt.setPrompt(`${ctx.currentMarket.MarketCurrency} Bid ${bid} Ask ${ask}`);
+		} else {
+			prompt.setPrompt(ctx.currentMarket.MarketCurrency);
+		}
 	}
 };
 

@@ -80,6 +80,7 @@ class Table {
 	}
 
 	async upsert(data) {
+
 		data = flatten(data);
 
 		let result = await db.query(`INSERT INTO \`${this.name}\` SET ? ON DUPLICATE KEY UPDATE ?`, data, data);
@@ -126,7 +127,7 @@ class DB {
 		// old
 		this.trade = this.table('trade');
 		this.order = this.table('order');
-		this.trade_history = this.table('trade_history');
+		this.trades = this.table('trades');
 	}
 
 	table(name) {

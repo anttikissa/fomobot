@@ -1,10 +1,10 @@
-let sc = require('socketcluster-client');
 let config = require('./config');
 let log = require('./log');
+let db = require('./db');
 
 let _ = require('lodash');
-
-let db = require('./db');
+let fs = require('fs');
+let sc = require('socketcluster-client');
 
 let credentials = {
 	apiKey: config.coinigy.API_KEY,
@@ -21,6 +21,46 @@ let socket = sc.connect(options);
 
 // e.g. 'BTRX-NEOS/BTC' -> { buys: [ 3 best buys... ], sells: [ 3 best sells... ] }
 // buy/sell has price, quantity, total
+
+let counters = {
+	channelsSubscribed: 0,
+	orderBookMessages: 0,
+	tradeMessages: 0,
+	dbWrites: 0,
+	dbErrors: 0,
+	dbFinalErrors: 0,
+	dbSolvedErrors: 0,
+	dbRetries: 0,
+};
+
+function report() {
+	let dbText = `, ${counters.dbWrites} db writes`;
+	if (counters.dbErrors) {
+		dbText += `, ${counters.dbErrors} db errors`;
+	}
+	if (counters.dbSolvedErrors) {
+		dbText += `, ${counters.dbSolvedErrors} db solved errors`;
+	}
+	if (counters.dbFinalErrors) {
+		log('HOX! THERE WERE ERRORS IN FINAL STATE. CHECK THE DUMP FILE.');
+		dbText += `, ${counters.dbFinalErrors} db final errors`;
+	}
+	if (counters.dbRetries) {
+		dbText += `, ${counters.dbRetries} db retries`;
+	}
+	if (counters.channelsSubscribed) {
+		log(`Subscribed to ${counters.channelsSubscribed} channels.`);
+	}
+	log(`60 seconds status: ${counters.orderBookMessages} order book changes, ${counters.tradeMessages} trades${dbText}`)
+
+	for (let key in counters) {
+		counters[key] = 0;
+	}
+}
+
+setInterval(() => {
+	report();
+}, 60 * 1000);
 
 let orderBooks = {
 };
@@ -66,8 +106,8 @@ socket.on('connect', function(status) {
 			});
 
 			myChannels = myChannels.filter(channel => {
+				// return channel.match(/ETH--BTC/);
 				return true;
-				// result = channel.match(/ETH--BTC/);
 				// if (result) {
 				// 	result = channel.match('BINA');
 				// }
@@ -82,16 +122,15 @@ socket.on('connect', function(status) {
 				return true;
 			});
 
-			let start = new Date();
-			let counter = 0;
+			// let start = new Date();
+			// let counter = 0;
 
-			setInterval(() => {
-				let end = new Date();
-				let seconds = (end - start) / 1000;
-
-				log(`Checkpoint reached. ${(counter / seconds).toFixed(2)} datapoints per second`);
-				// process.exit(0);
-			}, 10000);
+			// setInterval(() => {
+			// 	let end = new Date();
+			// 	let seconds = (end - start) / 1000;
+			//
+			// 	log(`Checkpoint reached. ${(counter / seconds).toFixed(2)} datapoints per second`);
+			// }, 10000);
 
 			// How many decimals is needed to represent the number?
 			// min 8, max 12
@@ -106,8 +145,9 @@ socket.on('connect', function(status) {
 			// 	return 12;
 			// }
 			log(`Subscribing to ${myChannels.length} channels.`);
+
 			myChannels.forEach(channel => {
-				log('Subscribe', channel);
+				// log('Subscribe', channel);
 
 				if (channel.startsWith('ORDER')) {
 
@@ -118,13 +158,17 @@ socket.on('connect', function(status) {
 
 					var channelPairId = `${channelExchange}-${channelCurrency}/${channelBaseCurrency}`;
 					// log('Channel id', channelChannelId);
-
 				}
+
 				let subscribed = socket.subscribe(channel);
+				counters.channelsSubscribed++;
+
 				subscribed.watch(data => {
 					let isTrade = !Array.isArray(data) && data.label;
 
 					if (isTrade) {
+
+						counters.tradeMessages++;
 
 						let pairId = `${data.exchange}-${data.label}`;
 						let orderBook = orderBooks[pairId];
@@ -132,10 +176,15 @@ socket.on('connect', function(status) {
 							// log('Has order book', orderBook);
 						}
 
-						// return;
-						// This is likely the timestamp on the actual exchange
 						let exchange = data.exchange;
-						let timestamp = new Date(data.time_local + 'Z');
+						let timestamp = new Date(data.time + 'Z');
+						let otherTimestamp = new Date(data.time_local + 'Z');
+						let coinigyTimestamp = new Date(data.timestamp);
+
+						if (timestamp.getTime() !== otherTimestamp.getTime()) {
+							log('ERROR timestamp discrepancy', data);
+						}
+
 						let tradeId = data.tradeid;
 						let label = data.label;
 						let price = data.price;
@@ -145,9 +194,9 @@ socket.on('connect', function(status) {
 						let total = data.total;
 						// let decimals = getDecimals(data.total);
 
-						let labelMatch = data.label.match(/(.*)\/(.*)/);
+						let labelMatch = label.match(/(.*)\/(.*)/);
 						if (!labelMatch) {
-							log('ERROR matching label, this should not happen', data.label, data);
+							log('ERROR matching label, this should not happen', label, data);
 							return;
 						}
 
@@ -166,13 +215,14 @@ socket.on('connect', function(status) {
 							currency,
 							base_currency: baseCurrency,
 							timestamp,
+							coinigy_timestamp: coinigyTimestamp,
 							type: orderType,
 							price,
 							quantity,
 							total
 						};
 
-						var obData = '';
+						let obData = '';
 
 						if (orderBook) {
 							if (orderBook.buys[0]) {
@@ -206,15 +256,43 @@ socket.on('connect', function(status) {
 								tradeData.ob_sell_3_price = orderBook.sells[2].price;
 								tradeData.ob_sell_3_quantity = orderBook.sells[2].quantity;
 							}
-
 						}
 
-						log(`${pairId} ${orderType} ${quantity} at ${price} (${tradeId})${obData}`);
+						// log(`${pairId} ${orderType} ${quantity} at ${price} (${tradeId})${obData}`);
 
-						db.trade_history.upsert(tradeData).then(result => {
-							// log('db result', result);
+						db.trades.upsert(tradeData).then(result => {
+							counters.dbWrites++;
 						}).catch(err => {
-							log('DB error', err);
+							counters.dbErrors++;
+							log(`DB error inserting ${exchange} ${tradeId}, will retry soon. Code: ${err.code}: ${err.sqlMessage}, SQL state: ${err.sqlState}, SQL: ${err.sql}`);
+
+							let retries = 1;
+							function retry() {
+								log(`Retrying DB insert ${tradeData.exchange} ${tradeData.trade_id}...`);
+
+								counters.dbRetries++;
+
+								db.trades.upsert(tradeData)
+								.then(result => {
+									log(`DB insert ${tradeData.exchange} ${tradeData.trade_id} ok.`);
+									counters.dbWrites++;
+									counters.dbSolvedErrors++;
+									// ok
+								})
+								.catch(err => {
+									retries++;
+									if (retries > 4) {
+										log(`DB retry ${retries} failed, I give up`, err);
+										fs.appendFileSync('db-failures.json', JSON.stringify(tradeData) + '\n', 'utf8');
+										log('Data was written into db-failures.json');
+									} else {
+										log(`DB retry ${retries} failed, trying again...`, err);
+										setTimeout(retry, 300 * retries);
+									}
+								});
+							}
+
+							setTimeout(retry, 300 + 200 * Math.random());
 						});
 
 						// log('tradeData', tradeData);
@@ -230,6 +308,9 @@ socket.on('connect', function(status) {
 
 						// log('trade', data.exchange, data.label, data.tradeid, data.time_local, data.timestamp);
 					} else {
+
+						// Order book message
+						counters.orderBookMessages++;
 
 						// log('!!! ORDERBOOK?, data', data);
 						let pairId = `${data[0].exchange}-${data[0].label}`;
@@ -254,10 +335,10 @@ socket.on('connect', function(status) {
 					// if (data)
 					// log(data.label);
 					// log('channel', channel, 'data', data);
-					if (counter % 1000 === 0) {
-						log('Counter', counter, 'from channel', channel);
-					}
-					counter++;
+					// if (counter % 1000 === 0) {
+					// 	log('Counter', counter, 'from channel', channel);
+					// }
+					// counter++;
 				});
 			})
 

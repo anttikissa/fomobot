@@ -4,7 +4,6 @@ const commands = require('./commands');
 const ctx = require('./context');
 
 const log = require('./log');
-const print = log.print;
 
 async function main() {
 
