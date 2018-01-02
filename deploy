@@ -2,9 +2,14 @@
 
 date
 
+
 git archive master > /tmp/fomobot.tar
-scp /tmp/fomobot.tar fomobot2:
-ssh fomobot2 'mkdir -p fomobot; tar xvf fomobot.tar -C fomobot; cd fomobot; yarn'
+scp /tmp/fomobot.tar fomobot1:
+ssh fomobot1 'mkdir -p fomobot; tar xvf fomobot.tar -C fomobot; cd fomobot; yarn'
+
+#git archive master > /tmp/fomobot.tar
+#scp /tmp/fomobot.tar fomobot2:
+#ssh fomobot2 'mkdir -p fomobot; tar xvf fomobot.tar -C fomobot; cd fomobot; yarn'
 
 date
 
