@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# usage:
+# scp init-server server:
+# ssh server ./init-server
+
 curl --silent --location https://rpm.nodesource.com/setup_8.x | sudo bash -
 sudo yum install -y nodejs
 sudo npm install -g yarn
