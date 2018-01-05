@@ -4,8 +4,11 @@ while true
 do
 	node ./coinigy
 	RESULT=$?
-#	if [ "$RESULT" -ne "10" ]
-#	then
-#		exit
-#	fi
+	echo "Exit with result $?"
+	if [ "$RESULT" -ne "10" ]
+	then
+		echo "Abnormal restart"
+	else
+		echo "Restarting because of code change"
+	fi
 done
