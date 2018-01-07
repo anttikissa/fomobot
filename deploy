@@ -7,13 +7,11 @@ scp /tmp/fomobot.tar fomobot1:
 ssh fomobot1 'mkdir -p fomobot; tar xvf fomobot.tar -C fomobot; cd fomobot; yarn'
 
 sleep 10
-
 git archive master > /tmp/fomobot.tar
 scp /tmp/fomobot.tar fomobot2:
 ssh fomobot2 'mkdir -p fomobot; tar xvf fomobot.tar -C fomobot; cd fomobot; yarn'
 
 sleep 10
-
 git archive master > /tmp/fomobot.tar
 scp /tmp/fomobot.tar fomobot3:
 ssh fomobot3 'mkdir -p fomobot; tar xvf fomobot.tar -C fomobot; cd fomobot; yarn'
