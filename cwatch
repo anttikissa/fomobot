@@ -4,7 +4,7 @@ while true
 do
 	node ./coinigy
 	RESULT=$?
-	echo "Exit with result $?"
+	echo "Exit with result $RESULT"
 	if [ "$RESULT" -ne "10" ]
 	then
 		echo "Abnormal restart"

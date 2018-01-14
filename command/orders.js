@@ -2,6 +2,7 @@ let btx = require('../bittrex');
 let ctx = require('../context');
 let print = require('../log').print;
 let pad = require('../util').pad;
+let log = require('../log');
 
 module.exports = async () => {
 	if (!ctx.currentMarket) {
@@ -19,23 +20,35 @@ module.exports = async () => {
 	}
 
 	for (let order of orders) {
+
+		// print(order);
+
+		let filledQuantity = order.Quantity - order.QuantityRemaining;
+
+		let date = new Date(order.TimeStamp);
 		let time = new Date(order.TimeStamp).toISOString().replace('Z', '').replace('T', ' ');
+
+		// Only last week
+		// if (date.getTime() < Date.now() - 1000 * 60 * 60 * 24 * 7) {
+		// 	continue;
+		// }
+
 		let type = order.OrderType.replace(/^LIMIT_/, '');
 		let isBuy = type === 'BUY';
 		let payGet = isBuy ? ', pay' : ', get';
-		let remaining = order.QuantityRemaining ? `(${order.QuantityRemaining} remaining)` : '';
+		let remaining = order.QuantityRemaining ? ` (${order.QuantityRemaining} remaining)` : '';
 		// let line = `${order.Exchange} ${time} ${type} ${order.Quantity} at ${order.Limit}${remaining}${payGet} ${order.Price} BTC, closed ${order.Closed}`;
 		// TODO ignore the closed (or print something like "closed in 5 seconds")
-		let line = `${order.Exchange} ${time} ${pad(type, 4)} ${order.Quantity.toFixed(8)} at ${order.Limit.toFixed(8)}${remaining}${payGet} ${order.Price} BTC`;
+		let line = `${order.Exchange} ${time} ${pad(type, 4)} ${filledQuantity.toFixed(8)} at ${order.Limit.toFixed(8)}${remaining}${payGet} ${order.Price} BTC`;
 		if (order.IsConditional) {
 			line += 'TODO conditional';
 		}
 		print(line);
 		if (isBuy) {
-			currencySum += order.Quantity;
+			currencySum += filledQuantity;
 			btcSum -= order.Price + order.Commission;
 		} else {
-			currencySum -= order.Quantity;
+			currencySum -= filledQuantity;
 			btcSum += order.Price - order.Commission;
 		}
 	}
@@ -63,17 +76,18 @@ module.exports = async () => {
 		}
 
 		if (profitable) {
-			print(`${ctx.currentMarket.MarketCurrency} balance: ${sum}, BTC balance ${btc}, sell over ${profitPrice} to stay profitable.`);
-		} else {
-			print(`${ctx.currentMarket.MarketCurrency} balance: ${sum}, BTC balance ${btc}, sell over ${profitPrice} to get profitable.`);
+			print('Position is profitable.');
 		}
+
+		print(`${ctx.currentMarket.MarketCurrency} balance: ${sum}, BTC balance ${btc}, effective buy price: ${profitPrice}.`);
 
 		if (bid) {
 			let sellAmount = -btcSum / bid;
-			print(`Sell about ${sellAmount.toFixed()} at current bid ${bid} to bring BTC balance to 0.`);
+			print(`Sell about ${sellAmount.toFixed(4)} at current bid ${bid} to bring BTC balance to 0.`);
 		}
 	} else {
-		print(`${ctx.currentMarket.MarketCurrency} balance: ${sum}, BTC balance ${btc}. Profit!`);
+		print('Position is profitable (without risk)! Congratulations.');
+		print(`${ctx.currentMarket.MarketCurrency} balance: ${sum}, BTC balance ${btc}.`);
 	}
 
 	if (bid) {
