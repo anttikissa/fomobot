@@ -1,0 +1,101 @@
+#!/usr/bin/env node
+
+let fs = require('fs');
+
+let db = require('./db');
+
+let log = require('./log');
+
+// console.log('querying');
+// db.query`
+// select th.* from trade_history th
+// left join trades tr on th.exchange = tr.exchange and th.trade_id = tr.trade_id
+// where tr.trade_id is null
+// `
+// .then(results => {
+// 	console.log('got results', results.length);
+// 	fs.writeFileSync('data.json', JSON.stringify(results, null, 2), 'utf8');
+// 	process.exit(0);
+// });
+
+let results = JSON.parse(fs.readFileSync('data.json', 'utf8'));
+
+
+async function bottleneck(n, tasks) {
+	if (n < 1) {
+		throw new Error('n must be at least 1');
+	}
+
+	if (tasks.length <= n || tasks.length === 0) {
+		return await Promise.all(tasks.map(task => task()));
+	}
+
+	return await new Promise((resolve, reject) => {
+		let results = Array(tasks.length);
+
+		let tasksRunning = 0;
+		let nextTaskIdx = 0;
+
+		let error = false;
+
+		function startNextTask() {
+			let taskIdx = nextTaskIdx++;
+			let task = tasks[taskIdx]();
+			tasksRunning++;
+			task.then(value => {
+				results[taskIdx] = value;
+				tasksRunning--;
+
+				// Some task failed? Don't start new ones.
+				if (error) {
+					return;
+				}
+
+				// Have more tasks to do? Start a new one.
+				if (nextTaskIdx < tasks.length) {
+					startNextTask();
+				}
+
+				// Finished all tasks? Resolve with results.
+				if (tasksRunning === 0) {
+					resolve(results);
+				}
+			}).catch(err => {
+				error = true;
+				reject(err);
+			});
+		}
+
+		while (tasksRunning < n) {
+			startNextTask();
+		}
+	});
+}
+
+
+
+
+
+async function main() {
+	let tasks = results.map(result => {
+		delete result.id;
+
+		return async function() {
+			let id = { exchange: result.exchange, trade_id: result.trade_id };
+			// log('id', id);
+			let str = `${id.exchange} ${id.trade_id}`;
+			let exists = await db.trades.select({ exchange: result.exchange, trade_id: result.trade_id });
+			if (exists.length) {
+				log(`${str} already exists`);
+			} else {
+				log(`INSERT ${str}`);
+
+				await db.trades.insert(result);
+			}
+		}
+	});
+
+	await bottleneck(5, tasks);
+}
+
+main().then(log).catch(log);
