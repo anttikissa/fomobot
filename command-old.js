@@ -1,6 +1,6 @@
 const prompt = require('./prompt');
 const log = require('./log');
-const bittrex = require('./bittrex');
+const bittrex = require('./exchange/bittrex');
 const db = require('./db');
 const ctx = require('./context');
 const util = require('./util');

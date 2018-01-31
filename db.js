@@ -128,6 +128,7 @@ class DB {
 		this.trade = this.table('trade');
 		this.order = this.table('order');
 		this.trades = this.table('trades');
+		this.tickers = this.table('tickers');
 	}
 
 	table(name) {

@@ -59,7 +59,59 @@ const util = {
 		}
 
 		return result;
+	},
+
+	async bottleneck(n, tasks) {
+		if (n < 1) {
+			throw new Error('n must be at least 1');
+		}
+
+		if (tasks.length <= n || tasks.length === 0) {
+			return await Promise.all(tasks.map(task => task()));
+		}
+
+		return await new Promise((resolve, reject) => {
+			let results = Array(tasks.length);
+
+			let tasksRunning = 0;
+			let nextTaskIdx = 0;
+
+			let error = false;
+
+			function startNextTask() {
+				let taskIdx = nextTaskIdx++;
+				let task = tasks[taskIdx]();
+				tasksRunning++;
+				task.then(value => {
+					results[taskIdx] = value;
+					tasksRunning--;
+
+					// Some task failed? Don't start new ones.
+					if (error) {
+						return;
+					}
+
+					// Have more tasks to do? Start a new one.
+					if (nextTaskIdx < tasks.length) {
+						startNextTask();
+					}
+
+					// Finished all tasks? Resolve with results.
+					if (tasksRunning === 0) {
+						resolve(results);
+					}
+				}).catch(err => {
+					error = true;
+					reject(err);
+				});
+			}
+
+			while (tasksRunning < n) {
+				startNextTask();
+			}
+		});
 	}
+
 };
 
 module.exports = util;

@@ -1,11 +1,11 @@
-const config = require('./config');
+const config = require('../config');
 const crypto = require('crypto');
 const request = require('request');
-const log = require('./log');
-const error = require('./error');
-const util = require('./util');
+const log = require('../log');
+const error = require('../error');
+const util = require('../util');
 
-const ctx = require('./context');
+const ctx = require('../context');
 
 const BASE_URL = 'https://bittrex.com/api/v1.1';
 

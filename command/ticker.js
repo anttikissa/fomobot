@@ -1,4 +1,4 @@
-let btx = require('../bittrex');
+let btx = require('../exchange/bittrex');
 let { print } = require('../log');
 let util = require('../util');
 let ctx = require('../context');
