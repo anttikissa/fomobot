@@ -1,20 +1,38 @@
 #!/bin/bash
 
+set -e
+
 date
 
-git archive master > /tmp/fomobot.tar
-scp /tmp/fomobot.tar fomobot1:
-ssh fomobot1 'mkdir -p fomobot; tar xvf fomobot.tar -C fomobot; cd fomobot; yarn'
+# TODO include 1
+HOSTS=`echo fomobot{2,3}`
 
-sleep 10
-git archive master > /tmp/fomobot.tar
-scp /tmp/fomobot.tar fomobot2:
-ssh fomobot2 'mkdir -p fomobot; tar xvf fomobot.tar -C fomobot; cd fomobot; yarn'
+echo "Deploying `git rev-parse master`" to $HOSTS
 
-sleep 10
+# Pre-deploy
 git archive master > /tmp/fomobot.tar
-scp /tmp/fomobot.tar fomobot3:
-ssh fomobot3 'mkdir -p fomobot; tar xvf fomobot.tar -C fomobot; cd fomobot; yarn'
+
+function deploy {
+	HOST=$1;
+
+	scp /tmp/fomobot.tar $HOST:
+	ssh $HOST 'mkdir -p fomobot; tar xvf fomobot.tar -C fomobot; cd fomobot; yarn; forever restart 0'
+}
+
+first=1
+
+for HOST in $HOSTS
+do
+	if [ $first -ne 1 ]
+	then
+		echo "Taking a nap between deploys..."
+		sleep 10
+	fi
+	first=0
+
+	echo "Deploying to $HOST..."
+	deploy $HOST
+done
 
 date
 
