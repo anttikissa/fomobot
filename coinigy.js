@@ -75,7 +75,7 @@ socket.on('connect', function(status) {
 		log('Error', err);
 		// Just start again
 		log('Restarting because of error');
-		process.exit(10);
+		process.exit(0);
 	});
 
 	socket.emit('auth', credentials, function(err, token) {
